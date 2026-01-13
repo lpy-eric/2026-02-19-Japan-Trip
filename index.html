@@ -50,10 +50,11 @@
         }
 
         .hero-bg {
+            /* 使用者指定的封面圖 */
             background-image: linear-gradient(to bottom, rgba(14, 165, 233, 0.1), rgba(255, 255, 255, 1)), url('https://land110602.com/wp-content/uploads/2023/12/image1-2.png');
             background-size: cover;
             background-position: center center;
-            background-attachment: fixed; /* 讓背景固定，切換頁面時更有質感 */
+            background-attachment: fixed;
         }
 
         /* 卡片玻璃擬態效果 */
@@ -143,7 +144,7 @@
             </transition>
         </nav>
 
-        <!-- 內容區域：使用 v-show 切換頁面 -->
+        <!-- 內容區域 -->
         
         <!-- PAGE 1: 行程首頁 -->
         <div v-show="currentPage === 'home'">
@@ -177,7 +178,7 @@
                             <i class="fa-solid fa-plane-departure"></i>
                         </div>
                         <div>
-                            <p class="text-xs text-slate-400 font-bold uppercase">Outbound Flight</p>
+                            <p class="text-xs text-slate-400 font-bold uppercase">Outbound</p>
                             <p class="font-bold text-slate-800">UO646 HKG <i class="fa-solid fa-arrow-right mx-1 text-xs text-slate-300"></i> NRT</p>
                         </div>
                     </div>
@@ -194,7 +195,7 @@
                         
                         <!-- Day Header -->
                         <div @click="toggleDay(index)" class="cursor-pointer relative">
-                            <!-- Header Image -->
+                            <!-- Header Image (h-48 md:h-64 for better visibility) -->
                             <div class="h-48 md:h-64 w-full relative overflow-hidden">
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10"></div>
                                 <img :src="day.coverImage" class="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-110" :alt="day.title">
@@ -250,6 +251,22 @@
                                 </div>
                             </div>
                         </transition>
+                    </div>
+                </div>
+
+                <!-- Tips Section (新增: 旅遊小貼士) -->
+                <div class="mt-8 bg-amber-50 rounded-2xl p-6 border border-amber-100">
+                    <h3 class="text-lg font-bold text-amber-700 mb-4"><i class="fa-solid fa-lightbulb mr-2"></i>旅途小貼士</h3>
+                    <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                        <div v-for="tip in tips" class="bg-white p-4 rounded-xl shadow-sm border border-amber-100">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center">
+                                    <i class="fa-solid" :class="tip.icon"></i>
+                                </div>
+                                <span class="font-bold text-amber-800">{{ tip.title }}</span>
+                            </div>
+                            <p class="text-xs text-slate-500">{{ tip.desc }}</p>
+                        </div>
                     </div>
                 </div>
                 
@@ -331,7 +348,7 @@
                                 <i class="fa-solid fa-circle-notch fa-spin text-primary text-2xl"></i>
                             </div>
 
-                            <!-- 發聲按鈕 (取代原本的複製按鈕) -->
+                            <!-- 發聲按鈕 -->
                             <button v-if="transOutput" @click="speakText" class="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white text-slate-400 shadow hover:text-primary hover:bg-blue-50 flex items-center justify-center transition" :class="{'text-primary ring-2 ring-primary/50 animate-pulse': isSpeaking}">
                                 <i class="fa-solid" :class="isSpeaking ? 'fa-volume-high' : 'fa-volume-low'"></i>
                             </button>
@@ -360,47 +377,38 @@
             setup() {
                 const mobileMenuOpen = ref(false)
                 const scrollY = ref(0)
-                const currentPage = ref('home') // 'home' or 'translate'
+                const currentPage = ref('home')
                 
                 // 翻譯功能狀態
-                const transMode = ref('zh-to-ja') // 'zh-to-ja' or 'ja-to-zh'
+                const transMode = ref('zh-to-ja')
                 const transInput = ref('')
                 const transOutput = ref('')
                 const isTranslating = ref(false)
                 const isSpeaking = ref(false)
 
-                // 導航切換
                 const switchPage = (page) => {
                     currentPage.value = page
                     mobileMenuOpen.value = false
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                 }
 
-                // 切換語言模式
                 const toggleTransMode = () => {
                     transMode.value = transMode.value === 'zh-to-ja' ? 'ja-to-zh' : 'zh-to-ja'
-                    // 交換輸入與輸出內容 (如果有的話)
                     const temp = transInput.value
                     transInput.value = transOutput.value
                     transOutput.value = temp
                 }
 
-                // 執行翻譯 API
                 const doTranslate = async () => {
                     if (!transInput.value.trim()) return
-                    
                     isTranslating.value = true
-                    transOutput.value = '' // 清空舊結果
-                    
+                    transOutput.value = ''
                     const fromLang = transMode.value === 'zh-to-ja' ? 'zh-TW' : 'ja'
                     const toLang = transMode.value === 'zh-to-ja' ? 'ja' : 'zh-TW'
-                    
                     try {
-                        // 使用 MyMemory Free API
                         const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(transInput.value)}&langpair=${fromLang}|${toLang}`
                         const res = await fetch(url)
                         const data = await res.json()
-                        
                         if (data.responseData) {
                             transOutput.value = data.responseData.translatedText
                         } else {
@@ -414,56 +422,46 @@
                     }
                 }
 
-                // 文字發聲功能 (使用 Web Speech API)
                 const speakText = () => {
                     if (!transOutput.value) return
-                    
-                    // 停止當前發音
                     window.speechSynthesis.cancel()
-
                     const utterance = new SpeechSynthesisUtterance(transOutput.value)
-                    
-                    // 設定語言
-                    // zh-to-ja 模式 -> 輸出是日文 (ja-JP)
-                    // ja-to-zh 模式 -> 輸出是中文 (zh-TW)
                     utterance.lang = transMode.value === 'zh-to-ja' ? 'ja-JP' : 'zh-TW'
-                    
-                    // 設定語速 (選填，1 為正常)
                     utterance.rate = 0.9
-
-                    utterance.onstart = () => {
-                        isSpeaking.value = true
-                    }
-                    utterance.onend = () => {
-                        isSpeaking.value = false
-                    }
-                    utterance.onerror = () => {
-                        isSpeaking.value = false
-                    }
-
+                    utterance.onstart = () => isSpeaking.value = true
+                    utterance.onend = () => isSpeaking.value = false
+                    utterance.onerror = () => isSpeaking.value = false
                     window.speechSynthesis.speak(utterance)
                 }
 
+                // 旅遊貼士資料
+                const tips = ref([
+                    { icon: "fa-chair", title: "新幹線劃位", desc: "Day 5 回程建議提早預訂 Hakutaka 指定席，以免向隅。" },
+                    { icon: "fa-user-group", title: "注意人潮", desc: "週日阿美橫丁人潮洶湧，請隨時注意隨身財物安全。" },
+                    { icon: "fa-bottle-water", title: "液體打包", desc: "布丁、果凍、化妝水等液體類商品，請務必放入托運行李。" }
+                ])
+
+                // 更新後的詳細行程
                 const itinerary = ref([
                     {
                         dateStr: "2/19 (週三)",
                         title: "抵達東京 & 上野美食",
-                        coverImage: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=1988&auto=format&fit=crop", // Tokyo Night
+                        coverImage: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=1988&auto=format&fit=crop", 
                         isOpen: true,
                         activities: [
-                            { time: "18:05", title: "抵達成田機場 (NRT)", desc: "入境手續、領取行李", tag: "Arrival", important: true },
-                            { time: "19:30", title: "搭乘 Skyliner", desc: "前往京成上野站 (約45分鐘)", tag: "Transport" },
-                            { time: "20:30", title: "Check-in: APA Hotel 上野駅前", desc: "位置便利，放下行李準備晚餐", tag: "Hotel" },
+                            { time: "18:05", title: "抵達成田機場 (NRT)", desc: "UO646 航班抵達，辦理入境手續、領取行李。", tag: "Arrival", important: true },
+                            { time: "19:30", title: "搭乘 Skyliner", desc: "直達京成上野站 (約45分鐘)。", tag: "Transport" },
+                            { time: "20:30", title: "Check-in: APA Hotel 上野駅前", desc: "步行至飯店辦理入住，放下行李。", tag: "Hotel" },
                             { 
                                 time: "21:00", 
                                 title: "晚餐推薦", 
                                 desc: "選擇以下其中一間享受抵達後的第一餐：", 
-                                tag: "Dinner",
+                                tag: "Dinner", 
                                 important: true,
                                 options: [
-                                    { name: "磯丸水產", note: "24H營業，氣氛熱鬧，可自己烤海鮮" },
-                                    { name: "一蘭拉麵", note: "車站旁，穩定美味，24H營業" },
-                                    { name: "房家燒肉", note: "高品質和牛，立食或一般席" }
+                                    { name: "磯丸水產 上野6丁目店", note: "24H營業，氣氛熱鬧，可自己烤海鮮" },
+                                    { name: "一蘭拉麵 アトレ上野山下口店", note: "車站旁，24H營業，穩定美味" },
+                                    { name: "房家 上野六丁目店", note: "站立式燒肉或一般席，提供高品質和牛" }
                                 ]
                             }
                         ]
@@ -471,53 +469,69 @@
                     {
                         dateStr: "2/20 (週四)",
                         title: "移動日 & 湯之丸滑雪",
-                        coverImage: "https://images.unsplash.com/photo-1486496146582-9ffcd0b2b2b7?q=80&w=2070&auto=format&fit=crop", // Ski Resort
+                        coverImage: "https://images.unsplash.com/photo-1486496146582-9ffcd0b2b2b7?q=80&w=2070&auto=format&fit=crop", 
                         isOpen: false,
                         activities: [
-                            { time: "06:58", title: "搭乘北陸新幹線 Asama 603號", desc: "上野 -> 佐久平 (08:15 抵達)", tag: "Transport" },
-                            { time: "08:15", title: "佐久平站接駁", desc: "朋友開車接送前往滑雪場", tag: "Meetup" },
-                            { time: "09:30", title: "湯之丸滑雪場 (Yunomaru)", desc: "全日滑雪體驗 (至 16:30)", tag: "Skiing", important: true, image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2070&auto=format&fit=crop" },
-                            { time: "16:30", title: "前往飯店", desc: "車程約 10-15 分鐘", tag: "Transport" },
-                            { time: "Evening", title: "入住: 休暇村嬬恋鹿沢", desc: "享用飯店晚餐 (一泊二食)，泡湯休息", tag: "Hotel", image: "https://images.unsplash.com/photo-1542382257-80dedb725088?q=80&w=2000&auto=format&fit=crop" }
+                            { time: "06:58", title: "搭乘北陸新幹線 Asama 603號", desc: "上野站 -> 佐久平站 (08:15 抵達)。", tag: "Transport", important: true },
+                            { time: "08:15", title: "佐久平站接駁", desc: "抵達佐久平站，朋友開車接駁。", tag: "Meetup" },
+                            { time: "09:30", title: "湯之丸滑雪場 (Yunomaru)", desc: "全日滑雪體驗 (至 16:30)。", tag: "Skiing", important: true, image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2070&auto=format&fit=crop" },
+                            { time: "16:30", title: "前往飯店", desc: "朋友開車前往休暇村 (約 10-15 分鐘)。", tag: "Transport" },
+                            { time: "Evening", title: "入住: 休暇村嬬恋鹿沢", desc: "享用飯店晚餐 (一泊二食)，泡湯休息。", tag: "Hotel", image: "https://images.unsplash.com/photo-1542382257-80dedb725088?q=80&w=2000&auto=format&fit=crop" }
                         ]
                     },
                     {
                         dateStr: "2/21 (週五)",
                         title: "滑雪 Day 2 & 移動至上田",
-                        coverImage: "https://songchenwen.com/_astro/1.BGSqTdDB_Z25xYLh.webp.jpg", // 更新圖片：使用者指定滑雪背景
+                        coverImage: "https://songchenwen.com/_astro/1.BGSqTdDB_Z25xYLh.webp.jpg", // 使用者指定圖片
                         isOpen: false,
                         activities: [
-                            { time: "09:00", title: "退房出發", desc: "前往湯之丸滑雪場", tag: "Transport" },
-                            { time: "09:30", title: "繼續滑雪", desc: "享受滑雪樂趣 (至 16:30)", tag: "Skiing", important: true },
-                            { time: "16:30", title: "前往上田市", desc: "朋友開車直達，約 45-50 分鐘", tag: "Transport" },
-                            { time: "17:30", title: "Check-in: レーベン上田中央 DESTIA", desc: "放下行李稍作休息", tag: "Hotel" },
-                            { time: "19:00", title: "晚餐: たつみ寿司 (Tatsumi Sushi)", desc: "位於上田市材木町，朋友接送", tag: "Food", important: true, image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2070&auto=format&fit=crop" }
+                            { time: "09:00", title: "退房出發", desc: "享用早餐後退房，前往湯之丸滑雪場。", tag: "Transport" },
+                            { time: "09:30", title: "繼續滑雪", desc: "享受滑雪樂趣 (至 16:30)。", tag: "Skiing", important: true },
+                            { time: "16:30", title: "前往上田市", desc: "朋友開車直達 (約 45-50 分鐘)，無需轉乘。", tag: "Transport" },
+                            { time: "17:30", title: "Check-in: レーベン上田中央 DESTIA", desc: "抵達飯店，放下行李稍作休息。", tag: "Hotel" },
+                            { time: "19:00", title: "晚餐: たつみ寿司 (Tatsumi Sushi)", desc: "位於上田市材木町，朋友開車接送。", tag: "Food", important: true, image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2070&auto=format&fit=crop" },
+                            { time: "21:00", title: "返回飯店", desc: "朋友載回飯店休息。", tag: "Return" }
                         ]
                     },
                     {
                         dateStr: "2/22 (週六)",
                         title: "輕井澤購物與散策",
-                        coverImage: "https://images.unsplash.com/photo-1481026469463-66327c86e544?q=80&w=2070&auto=format&fit=crop", // 更新圖片：Winter Shopping/Street
+                        coverImage: "https://images.unsplash.com/photo-1481026469463-66327c86e544?q=80&w=2070&auto=format&fit=crop", 
                         isOpen: false,
                         activities: [
-                            { time: "Morning", title: "前往輕井澤", desc: "走淺間太陽線，車程 50-60 分鐘。風景優美。", tag: "Trip", important: true },
-                            { time: "All Day", title: "輕井澤王子購物廣場 (Outlet)", desc: "盡情購物，戰利品直接放車上", tag: "Shopping", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop" },
-                            { time: "Afternoon", title: "舊輕井澤銀座通", desc: "散步、伴手禮、美食", tag: "Walking" },
-                            { time: "Night", title: "返回上田", desc: "留宿 レーベン上田中央 DESTIA", tag: "Return" }
+                            { time: "Morning", title: "前往輕井澤", desc: "朋友開車走淺間太陽線 (50-60分鐘)，沿途風景優美。", tag: "Trip", important: true },
+                            { time: "All Day", title: "輕井澤行程", desc: "1. 輕井澤王子購物廣場 (Outlet) 購物\n2. 舊輕井澤銀座通散步、美食", tag: "Shopping", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop" },
+                            { time: "Night", title: "返回上田", desc: "戰利品放車上，返回 レーベン上田中央 DESTIA。", tag: "Return" }
                         ]
                     },
                     {
                         dateStr: "2/23 (週日)",
-                        title: "上田觀光 & 返回香港",
-                        coverImage: "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?q=80&w=2070&auto=format&fit=crop", // Japan Castle
+                        title: "早回東京 & 阿美橫丁深度遊",
+                        coverImage: "https://images.unsplash.com/photo-1533050487297-09b450131914?q=80&w=2070&auto=format&fit=crop", 
                         isOpen: false,
                         activities: [
-                            { time: "10:00", title: "上田城跡公園", desc: "歷史巡禮，觀光散步", tag: "Sightseeing", image: "https://images.unsplash.com/photo-1570459027562-4a916cc6113f?q=80&w=1976&auto=format&fit=crop" },
-                            { time: "12:00", title: "午餐: 刀屋 (Katanaya)", desc: "推薦信州蕎麥麵", tag: "Food" },
-                            { time: "13:38", title: "新幹線 Asama 616號", desc: "上田 -> 上野 (15:00 抵達)", tag: "Transport", important: true },
-                            { time: "15:00", title: "阿美橫丁 / 多慶屋", desc: "最後採買 (零食藥妝)，行李寄放車站", tag: "Shopping" },
-                            { time: "17:40", title: "搭乘 Skyliner", desc: "前往成田機場", tag: "Transport" },
-                            { time: "20:55", title: "航班起飛 (UO693)", desc: "返回溫暖的家", tag: "Flight" }
+                            { time: "09:00", title: "退房 & 前往車站", desc: "朋友送往上田站 (10分鐘車程)。", tag: "Transport" },
+                            { time: "10:00", title: "新幹線 Hakutaka 556號", desc: "上田 -> 上野 (11:14 抵達)。這班車較快。", tag: "Transport", important: true },
+                            { time: "11:30", title: "寄放行李", desc: "上野站中央改札外大型置物櫃。", tag: "Luggage" },
+                            { 
+                                time: "11:30", 
+                                title: "阿美橫丁深度遊", 
+                                desc: "購物與美食馬拉松 (至 17:00)", 
+                                tag: "Shopping", 
+                                important: true,
+                                image: "https://img.bigfang.tw/2018/03/1520652336-e4bde0eb46b8f32ef4b4207f5344b4d4.jpg",
+                                options: [
+                                    { name: "肉的大山", note: "必吃特製炸肉餅 (Yami-tsuki Menchi)" },
+                                    { name: "港屋食品", note: "海鮮丼、章魚燒，路邊攤氛圍" },
+                                    { name: "二木之菓子", note: "第一營業所/BIG館，零食伴手禮掃貨" },
+                                    { name: "志村商店", note: "體驗千圓巧克力福袋叫賣表演" },
+                                    { name: "OS Drug", note: "只收現金，藥品價格內行最愛" },
+                                    { name: "多慶屋", note: "綜合免稅店，最後補貨 (食品/藥妝/名牌)" }
+                                ]
+                            },
+                            { time: "17:00", title: "取回行李", desc: "回到上野站取行李。", tag: "Luggage" },
+                            { time: "17:40", title: "搭乘 Skyliner", desc: "前往成田機場 (18:25 抵達)。", tag: "Transport" },
+                            { time: "20:55", title: "航班起飛 (UO693)", desc: "返回香港 (01:25+1 抵達)。", tag: "Flight" }
                         ]
                     }
                 ])
@@ -551,7 +565,8 @@
                     isSpeaking,
                     toggleTransMode,
                     doTranslate,
-                    speakText
+                    speakText,
+                    tips
                 }
             }
         }).mount('#app')

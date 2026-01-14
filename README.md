@@ -1,4 +1,4 @@
-🏔️ 東京長野滑雪五日遊 (Tokyo Nagano Ski Trip App)
+🏔️ 東京長野滑雪五日遊 (Tokyo Nagano Ski Trip App) 
 
 這是一個基於 Vue.js 3 和 Tailwind CSS 構建的現代化單頁旅遊網頁應用程式 (Single Page Application)。
 
